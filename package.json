@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "lint": "eslint ."
+    "node": "nodemon --watch src --ext ts --exec \"tsx src/server.ts\""
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -35,6 +35,8 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1"
   }

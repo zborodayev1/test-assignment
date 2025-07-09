@@ -1,4 +1,3 @@
-// services/token.service.js
 import jwt, { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
 import {
   APP_NAME,
@@ -13,28 +12,22 @@ import { AppError } from '../utils/appError.js';
 import { logger } from '../utils/logger.js';
 
 export class TokenService {
-  private accessTokenSecret: Secret;
-  private refreshTokenSecret: Secret;
-  private accessTokenExpiry: string;
-  private refreshTokenExpiry: string;
-
-  constructor() {
-    this.accessTokenSecret = JWT_SECRET;
-    this.refreshTokenSecret = JWT_REFRESH_SECRET;
-    this.accessTokenExpiry = JWT_EXPIRES_IN || '10m';
-    this.refreshTokenExpiry = JWT_REFRESH_EXPIRES_IN || '6d';
-  }
+  private accessTokenSecret: Secret = JWT_SECRET;
+  private refreshTokenSecret: Secret = JWT_REFRESH_SECRET;
+  private accessTokenExpiry: string = JWT_EXPIRES_IN || '10m';
+  private refreshTokenExpiry: string = JWT_REFRESH_EXPIRES_IN || '6d';
 
   generateAccessToken(payload: ITokenPayload): string {
     try {
       const signOptions: SignOptions = {
-        expiresIn: this.getExpiryTime(this.refreshTokenExpiry),
+        expiresIn: this
+          .accessTokenExpiry as unknown as SignOptions['expiresIn'],
         issuer: APP_NAME,
         audience: APP_NAME,
       };
-      return jwt.sign(payload, this.refreshTokenSecret, signOptions);
+      return jwt.sign(payload, this.accessTokenSecret, signOptions);
     } catch (error) {
-      logger.error(`Failed to generate access token ${error}`);
+      logger.error(`Failed to generate access token: ${error}`);
       throw new AppError(
         'Token generation failed',
         500,
@@ -45,13 +38,15 @@ export class TokenService {
 
   generateRefreshToken(payload: ITokenPayload): string {
     try {
-      return jwt.sign({ ...payload }, this.refreshTokenSecret, {
-        expiresIn: this.getExpiryTime(this.refreshTokenExpiry),
+      const signOptions: SignOptions = {
+        expiresIn: this
+          .refreshTokenExpiry as unknown as SignOptions['expiresIn'],
         issuer: APP_NAME,
         audience: APP_NAME,
-      });
+      };
+      return jwt.sign(payload, this.refreshTokenSecret, signOptions);
     } catch (error) {
-      logger.error(`Failed to generate refresh token ${error}`);
+      logger.error(`Failed to generate refresh token: ${error}`);
       throw new AppError(
         'Token generation failed',
         500,
@@ -63,10 +58,10 @@ export class TokenService {
   async generateTokenPair(user: IUser): Promise<{
     accessToken: string;
     refreshToken: string;
-    expiresIn: number;
+    expiresIn: string;
   }> {
     const payload: ITokenPayload = {
-      userId: user.id.toString(),
+      userId: user._id.toString(),
       email: user.email,
     };
 
@@ -76,7 +71,7 @@ export class TokenService {
     return {
       accessToken,
       refreshToken,
-      expiresIn: this.getExpiryTime(this.accessTokenExpiry),
+      expiresIn: this.accessTokenExpiry,
     };
   }
 
@@ -87,11 +82,13 @@ export class TokenService {
         audience: APP_NAME,
       });
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        throw new AppError('Access token expired', 401, 'TOKEN_EXPIRED');
-      }
-      if (error.name === 'JsonWebTokenError') {
-        throw new AppError('Invalid access token', 401, 'INVALID_TOKEN');
+      if (error instanceof Error) {
+        if (error.name === 'TokenExpiredError') {
+          throw new AppError('Token expired', 401, 'TOKEN_EXPIRED');
+        }
+        if (error.name === 'JsonWebTokenError') {
+          throw new AppError('Invalid token', 401, 'INVALID_TOKEN');
+        }
       }
       throw new AppError(
         'Token verification failed',
@@ -108,40 +105,20 @@ export class TokenService {
         audience: APP_NAME,
       });
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        throw new AppError(
-          'Refresh token expired',
-          401,
-          'REFRESH_TOKEN_EXPIRED'
-        );
-      }
-      if (error.name === 'JsonWebTokenError') {
-        throw new AppError(
-          'Invalid refresh token',
-          401,
-          'INVALID_REFRESH_TOKEN'
-        );
+      if (error instanceof Error) {
+        if (error.name === 'TokenExpiredError') {
+          throw new AppError('Token expired', 401, 'TOKEN_EXPIRED');
+        }
+        if (error.name === 'JsonWebTokenError') {
+          throw new AppError('Invalid token', 401, 'INVALID_TOKEN');
+        }
       }
       throw new AppError(
-        'Refresh token verification failed',
+        'Token verification failed',
         401,
-        'REFRESH_TOKEN_VERIFICATION_FAILED'
+        'TOKEN_VERIFICATION_FAILED'
       );
     }
-  }
-
-  getExpiryTime(expiry: string): number {
-    const timeUnits = {
-      s: 1000,
-      m: 60 * 1000,
-      h: 60 * 60 * 1000,
-      d: 24 * 60 * 60 * 1000,
-    };
-
-    const unit = expiry.slice(-1);
-    const value = parseInt(expiry.slice(0, -1));
-
-    return value * (timeUnits[unit] || timeUnits.m);
   }
 
   decodeToken(token: string): null | JwtPayload | string {

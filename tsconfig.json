@@ -8,13 +8,15 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
     "typeRoots": ["./node_modules/@types", "./interfaces"],
     "types": ["node", "express"]
   },
-  "include": ["src/**/*.ts", "interfaces/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }

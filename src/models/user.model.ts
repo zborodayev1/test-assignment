@@ -1,6 +1,7 @@
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   fullName: string;
   dateOfBirth: Date;
   email: string;
@@ -8,11 +9,15 @@ export interface IUser extends Document {
   role: 'admin' | 'user';
   isActive: boolean;
   provider: string;
+  blocked?: {
+    by: 'self' | 'admin';
+    reason?: string;
+    at: Date;
+  } | null;
 }
 
 const userSchema = new Schema<IUser>(
   {
-    id: Types.ObjectId,
     fullName: {
       type: String,
       trim: true,
@@ -38,6 +43,11 @@ const userSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    blocked: {
+      by: { type: String, enum: ['self', 'admin'] },
+      reason: { type: String },
+      at: { type: Date },
     },
     provider: {
       type: String,

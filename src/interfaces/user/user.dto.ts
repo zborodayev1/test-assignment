@@ -13,6 +13,11 @@ export interface ICreateUserInternalDTO {
   email: string;
   role: 'user' | 'admin';
   isActive: boolean;
+  blocked?: {
+    by: 'self' | 'admin';
+    reason?: string;
+    at: Date;
+  } | null;
 }
 
 export interface ISignInDTO {

@@ -51,6 +51,10 @@ export class AuthService {
           session,
         });
 
+        if (!user) {
+          throw new AppError('Error while create user', 500, 'SERVER_ERROR');
+        }
+
         const tokens = await this.tokenService.generateTokenPair(user);
 
         logger.info(`User registered ${userData.email}`);
@@ -69,6 +73,9 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(userData.email);
     if (!user) {
       throw new AppError('User not found', 401, 'USER_NOT_FOUND');
+    }
+    if (user.isActive !== true) {
+      throw new AppError('User blocked', 401, 'USER_BLOCKED');
     }
     await this.verifyPassword(userData.password, user.passwordHash);
 
